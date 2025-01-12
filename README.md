@@ -89,7 +89,8 @@ To get a local copy up and running, follow these simple steps:
 
   Ensure your OpenAI API key is set in your environment. You can do this directly or use getpass as prompted in the application.
 
-**Usage**
+## Usage
+
   Run the Streamlit app using the following command:
   
   ```bash
@@ -97,13 +98,13 @@ To get a local copy up and running, follow these simple steps:
   ```
   Open the provided URL (e.g., http://localhost:8501) in your web browser to start interacting with the Medical Chatbot. Ask any medical-related questions or type "appointment" to switch to the appointment booking flow.
 
-**Deployment**
+## Deployment
+
   This project is ready for deployment on platforms such as Streamlit Community Cloud:
+  - Navigate to Streamlit Community Cloud and link your GitHub repository.
+  - Set app.py as the main file and deploy.
+  - Follow similar steps for other cloud providers if desired.
 
-**Push your code to GitHub.**
-  Navigate to Streamlit Community Cloud and link your GitHub repository.
-  Set app.py as the main file and deploy.
-  Follow similar steps for other cloud providers if desired.
+## Contributing
 
-**Contributing**
   Contributions are welcome! If you have suggestions or improvements, please feel free to open an issue or submit a pull request. For major changes, please open an issue first to discuss what you would like to change.
