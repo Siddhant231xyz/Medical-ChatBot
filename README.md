@@ -57,8 +57,8 @@ To get a local copy up and running, follow these simple steps:
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/<your-username>/<repo-name>.git
-   cd <repo-name>
+   git clone https://github.com/Siddhant231xyz/Medical-ChatBot.git
+   cd Medical-ChatBot
    ```
 2. **Create a Virtual Environment (recommended):**
 
