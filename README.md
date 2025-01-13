@@ -1,110 +1,142 @@
-# Medical Chatbot with Appointment Booking
+# Medical Chatbot with Appointment Booking 🏥
 
-Welcome to the **Medical Chatbot with Appointment Booking** project! This interactive, Streamlit-powered application serves as a cutting-edge virtual medical assistant. It leverages state-of-the-art language models alongside retrieval-augmented generation (RAG) techniques to answer users' medical questions using a trusted medical reference and, when needed, smoothly guides users through an appointment booking process.
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-latest-red.svg)](https://streamlit.io)
+[![OpenAI](https://img.shields.io/badge/OpenAI-integrated-green.svg)](https://openai.com)
+[![LangChain](https://img.shields.io/badge/LangChain-latest-yellow.svg)](https://langchain.org)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
-## Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [How It Works](#how-it-works)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+## Overview 🎯
 
-## Overview
+The Medical Chatbot is a Streamlit-powered virtual medical assistant that combines advanced NLP with appointment scheduling capabilities. Using retrieval-augmented generation (RAG) techniques and trusted medical references, it provides accurate medical information while facilitating seamless appointment bookings.
 
-This project integrates advanced Natural Language Processing (NLP) with a simple appointment scheduling flow. The Medical Chatbot reads a trusted medical reference (a PDF book), splits it into manageable chunks, and indexes the knowledge using vector stores. When users ask a question, the chatbot retrieves the most relevant information and generates a concise, empathetic, and disclaimer-included answer.
+![Medical Chatbot Demo](assets/demo.gif)
 
-The appointment booking module adds another layer of interactivity by allowing users to seamlessly transition from asking questions to scheduling appointments—all within one intuitive interface.
+## Features ✨
 
-## Features
+- 🤖 **Intelligent Medical Q&A**
+  - RAG-based information retrieval
+  - Trusted medical reference integration
+  - Context-aware responses
 
-- **Dynamic Medical Q&A:**  
-  Uses retrieval-augmented generation (RAG) to provide answers based on the most relevant information from a medical reference PDF.
-  
-- **Empathetic Chat Interface:**  
-  Built on Streamlit, the chatbot offers a user-friendly web interface designed to engage and inform users.
-  
-- **Appointment Booking Integration:**  
-  Easily switch to an appointment booking flow by typing keywords like "appointment" or "book". Users can then provide their details and receive a simulated appointment confirmation.
-  
-- **Cutting-Edge Technology:**  
-  Powered by models from OpenAI and integrated with LangChain, this application represents a modern approach to conversational AI in the healthcare domain.
-  
-- **Clear Medical Disclaimers:**  
-  All responses include a disclaimer, ensuring users understand that the information provided is solely for educational purposes and not a substitute for professional medical advice.
+- 💬 **Interactive Interface**
+  - User-friendly Streamlit interface
+  - Empathetic conversation design
+  - Real-time response generation
 
-## How It Works
+- 📅 **Appointment Management**
+  - Keyword-triggered booking flow
+  - Automated scheduling system
+  - Confirmation notifications
 
-1. **Document Preparation & Indexing:**  
-   The medical reference PDF is loaded and segmented into overlapping text chunks using a recursive splitter. These chunks are then indexed in an in-memory vector store, enabling fast and relevant retrieval based on user queries.
+- 🔒 **Safety & Compliance**
+  - Medical disclaimers
+  - Educational purpose clarity
+  - Professional guidance emphasis
 
-2. **Retrieval-Augmented Generation:**  
-   When a user asks a question, the application searches for the most relevant chunks of text in the vector store. The content is then combined with a set of carefully crafted medical instructions (which include empathy, conciseness, and a disclaimer) to generate a precise response.
+## Technical Architecture 🏗️
 
-3. **Appointment Booking Flow:**  
-   If a user expresses intent to book an appointment (detected via keywords), the chatbot shifts the conversation to gather the necessary appointment details, simulating a seamless booking process.
+```
+medical-chatbot/
+├── app.py                # Main Streamlit application
+├── requirements.txt      # Project dependencies
+├── code.py               # Code without GUI
+```
 
-4. **Streamlit Interface:**  
-   The entire interaction is handled via a Streamlit web app, making the experience interactive, real-time, and easily accessible through a web browser.
+## Installation 🚀
 
-## Installation
+### Prerequisites
 
-To get a local copy up and running, follow these simple steps:
+- Python 3.7+
+- OpenAI API key
+- Modern web browser
 
-1. **Clone the Repository:**
+### Setup Steps
 
-   ```bash
-   git clone https://github.com/Siddhant231xyz/Medical-ChatBot.git
-   cd Medical-ChatBot
-   ```
-2. **Create a Virtual Environment (recommended):**
+1. Clone the repository:
+```bash
+git clone https://github.com/Siddhant231xyz/Medical-ChatBot.git
+cd Medical-ChatBot
+```
 
-  ```bash
-  python -m venv venv
-  # Activate the environment:
-  # On Windows:
-  venv\Scripts\activate
-  # On macOS/Linux:
-  source venv/bin/activate
-  ```
-3. **Install Dependencies:**
+2. Create virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-  ```bash
-  pip install -r requirements.txt
-  ```
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-  The requirements.txt includes:
-  
-  streamlit
-  langchain-openai
-  langchain-core
-  langchain-community
-  langchain-text-splitters
-  langgraph
+4. Configure OpenAI API:
+```bash
+export OPENAI_API_KEY='your-api-key-here'
+```
 
-4. **Set Up Your OpenAI API Key:**
+## Usage Guide 📚
 
-  Ensure your OpenAI API key is set in your environment. You can do this directly or use getpass as prompted in the application.
+1. Start the application:
+```bash
+streamlit run app.py
+```
 
-## Usage
+2. Interact with the chatbot:
+   - Ask medical questions
+   - Type "appointment" for booking
+   - Review responses with disclaimers
 
-  Run the Streamlit app using the following command:
-  
-  ```bash
-  streamlit run app.py
-  ```
-  Open the provided URL (e.g., http://localhost:8501) in your web browser to start interacting with the Medical Chatbot. Ask any medical-related questions or type "appointment" to switch to the appointment booking flow.
+## How It Works 🔄
 
-## Deployment
+1. **Document Processing**
+   - PDF text chunking
+   - Vector store indexing
+   - Semantic search capability
 
-  This project is ready for deployment on platforms such as Streamlit Community Cloud:
-  - Navigate to Streamlit Community Cloud and link your GitHub repository.
-  - Set app.py as the main file and deploy.
-  - Follow similar steps for other cloud providers if desired.
+2. **Conversation Flow**
+   - Query understanding
+   - Context retrieval
+   - Response generation
+   - Appointment integration
 
-## Contributing
+## Deployment Options 🌐
 
-  Contributions are welcome! If you have suggestions or improvements, please feel free to open an issue or submit a pull request. For major changes, please open an issue first to discuss what you would like to change.
+### Streamlit Cloud
+1. Connect to GitHub repository
+2. Configure environment variables
+3. Deploy application
+
+### Alternative Platforms
+- Heroku
+- AWS
+- Google Cloud
+
+## Contributing 🤝
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+## Dependencies 📦
+
+- streamlit
+- langchain-openai
+- langchain-core
+- langchain-community
+- langchain-text-splitters
+- langgraph
+
+## License 📝
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+Created with ❤️ by Medical ChatBot Team
+</div>
