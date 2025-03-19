@@ -1,144 +1,163 @@
-import getpass
 import os
+import tempfile
+import json
 import streamlit as st
-
-# Ensure the OpenAI API key is set
-if not os.environ.get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for OpenAI: ")
-
-# ---------------------------
-# LLM, Embeddings, Vector Store, and Document Loading Setup
-# ---------------------------
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-llm = ChatOpenAI(model="gpt-4o-mini")
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-
-from langchain_core.vectorstores import InMemoryVectorStore
-vector_store = InMemoryVectorStore(embeddings)
-
-# Load the medical reference book PDF
+import pandas as pd
+import requests
+import numpy as np
 from langchain_community.document_loaders import PyPDFLoader
-loader = PyPDFLoader("C:/Users/admin/Desktop/010041093.pdf")
-
-from langchain_core.documents import Document
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.schema import HumanMessage
+from sqlalchemy import create_engine, text
 
-# Load and split the PDF into chunks
-docs = loader.load()
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-all_splits = text_splitter.split_documents(docs)
+# =============================================================================
+# Helper Functions
+# =============================================================================
 
-# Index the document chunks into the vector store
-_ = vector_store.add_documents(documents=all_splits)
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
 
-# ---------------------------
-# Define Medical Instructions and LangGraph Pipeline
-# ---------------------------
-medical_instructions = (
-    "You are a helpful, knowledgeable, and empathetic medical chatbot. "
-    "Your responses are based on reliable medical references provided in the context. "
-    "Include the following disclaimer in your responses: 'This information is for educational purposes only and is not a substitute for professional medical advice.' "
-    "Keep your answer concise (maximum three sentences) and do not provide a definitive diagnosis. "
-    "If you are unsure, say that you do not have enough information."
-)
+def load_and_process_pdf(file_path):
+    loader = PyPDFLoader(file_path)
+    docs = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splits = text_splitter.split_documents(docs)
+    return splits
 
-from langgraph.graph import START, StateGraph
-from typing_extensions import TypedDict, List
-
-class State(TypedDict):
-    question: str
-    context: List[Document]
-    answer: str
-
-def retrieve(state: State) -> State:
-    """Retrieve the most relevant document chunks from the medical reference."""
-    # Retrieve top 2 most relevant chunks based on the question.
-    retrieved_docs = vector_store.similarity_search(state["question"], k=2)
-    return {"question": state["question"], "context": retrieved_docs}
-
-def generate(state: State) -> State:
-    """Generate an answer based on the retrieved context and medical instructions."""
-    # Combine the content from the retrieved documents.
-    docs_content = "\n\n".join(doc.page_content for doc in state["context"])
+def query_medical_book(question: str, docs):
+    """Combine the content from docs and query the LLM with friendly, supportive instructions."""
+    # Combine excerpts from the medical book.
+    context = "\n\n".join(doc.page_content for doc in docs)
     
-    # Build messages: a system message including instructions and context, and a user message.
-    messages = [
-        {"role": "system", "content": f"{medical_instructions}\n\nContext:\n{docs_content}"},
-        {"role": "user", "content": state["question"]}
-    ]
-    
-    # Invoke the LLM to generate an answer.
-    response = llm.invoke(messages)
-    return {"question": state["question"], "context": state["context"], "answer": response.content}
-
-# Build the medical question-answering chain using LangGraph.
-graph_builder = StateGraph(State).add_sequence([retrieve, generate])
-graph_builder.add_edge(START, "retrieve")
-medical_graph = graph_builder.compile()
-
-# ---------------------------
-# Define the Appointment Booking Flow
-# ---------------------------
-def appointment_booking_flow(user_question: str, appointment_details: str) -> State:
-    """
-    A simple appointment booking flow.
-    Here we simulate a booking confirmation using the provided appointment details.
-    """
-    confirmation = (
-        f"Your appointment has been booked for {appointment_details}. "
-        "Please check your email for confirmation details. "
-        "Note: This information is for educational purposes and does not confirm an actual booking."
+    # System instructions for the LLM:
+    system_instructions = (
+        "You are a compassionate and friendly medical assistant. "
+        "Your responses should be written in a gentle and reassuring tone, avoiding any technical or frightening language. "
+        "If the patient's symptoms appear severe or concerning, kindly suggest booking an appointment. "
+        "Only answer queries related to medical issues."
     )
-    return {"question": user_question, "context": [], "answer": confirmation}
+    
+    # Build the full prompt.
+    prompt = (
+        f"{system_instructions}\n\n"
+        f"Medical Book Excerpt:\n{context}\n\n"
+        f"Patient Question: {question}\n\n"
+        "Answer:"
+    )
+    
+    llm = st.session_state.llm
+    # Wrap the prompt in a HumanMessage and send it to the LLM.
+    response = llm.invoke([HumanMessage(content=prompt)])
+    return response.content
 
-# ---------------------------
-# Streamlit App: Chat Interface
-# ---------------------------
-st.title("Medical Chatbot with Appointment Booking")
-st.write("Ask your medical questions or type 'appointment' to book an appointment.")
+def book_appointment(name, email, phone, appointment_datetime, symptoms):
+    """Insert appointment details directly into the AWS RDS database using SQLAlchemy."""
+    # Retrieve the RDS connection string from Streamlit secrets (set DATABASE_URL in your secrets file).
+    DATABASE_URL = st.secrets["DATABASE_URL"]
+    engine = create_engine(DATABASE_URL)
+    try:
+        with engine.connect() as conn:
+            insert_query = text("""
+                INSERT INTO appointments (name, email, phone, appointment_datetime, symptoms)
+                VALUES (:name, :email, :phone, :appointment_datetime, :symptoms)
+            """)
+            conn.execute(insert_query, {
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "appointment_datetime": appointment_datetime,
+                "symptoms": symptoms
+            })
+            conn.commit()
+        return True, "Appointment booked successfully!"
+    except Exception as e:
+        return False, str(e)
 
-# Use Streamlit's session_state to store conversation history and appointment mode.
-if "messages" not in st.session_state:
-    st.session_state.messages = []  # store tuples (user_message, bot_answer)
-if "appointment_mode" not in st.session_state:
-    st.session_state.appointment_mode = False
+def get_appointments():
+    DATABASE_URL = st.secrets.get("DATABASE_URL") or os.environ.get("DATABASE_URL")
+    engine = create_engine(DATABASE_URL)
+    try:
+        with engine.connect() as conn:
+            query = text("SELECT id, name, email, phone, appointment_datetime, symptoms, created_at FROM appointments ORDER BY created_at DESC")
+            result = conn.execute(query)
+            appointments = result.fetchall()
+        # Convert result to a pandas DataFrame for easier display.
+        df = pd.DataFrame(appointments, columns=["ID", "Name", "Email", "Phone", "Appointment DateTime", "Symptoms", "Created At"])
+        return df
+    except Exception as e:
+        st.error(f"Error retrieving appointments: {e}")
+        return None
 
-# Define a container for chat and (if needed) for appointment details.
-chat_container = st.container()
-with chat_container:
-    # Display conversation history.
-    for i, (user_msg, bot_msg) in enumerate(st.session_state.messages):
-        st.markdown(f"**You:** {user_msg}")
-        st.markdown(f"**Chatbot:** {bot_msg}")
+# =============================================================================
+# Session State Initialization
+# =============================================================================
 
-# Input for new message.
-user_input = st.text_input("Your message:", key="user_input")
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+    st.write("Initializing… please wait (this may take a minute).")
+    
+    # --- Initialize LLM and Embeddings ---
+    st.session_state.llm = ChatOpenAI(model="gpt-4o-mini")
+    st.session_state.embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    
+    st.success("Initialization complete!")
 
-if st.button("Send") and user_input:
-    # Check if the message is meant for appointment booking.
-    if "appointment" in user_input.lower() or "book" in user_input.lower():
-        st.session_state.appointment_mode = True
-        st.session_state.user_question = user_input
-        st.experimental_rerun()  # Rerun to show appointment details input.
+# =============================================================================
+# Streamlit UI
+# =============================================================================
+
+st.title("MedicalBook Analyzer & Appointment Booking System")
+
+tabs = st.tabs(["Medical Q&A", "Book Appointment", "View Appointments"])
+
+# --- Medical Q&A Tab ---
+with tabs[0]:
+    st.header("Medical Q&A")
+    uploaded_medbook = st.file_uploader("Upload a Medical Book (PDF)", type=["pdf"])
+    if uploaded_medbook is not None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            tmp_file.write(uploaded_medbook.read())
+            tmp_file_path = tmp_file.name
+        medbook_docs = load_and_process_pdf(tmp_file_path)
+        st.success("Medical book processed successfully!")
+    
+        question = st.text_input("Ask a question about patient symptoms or possible diseases:")
+        if st.button("Submit Question"):
+            if not question:
+                st.warning("Please enter a question.")
+            else:
+                answer = query_medical_book(question, medbook_docs)
+                st.markdown("### Answer")
+                st.write(answer)
     else:
-        # Run the medical RAG pipeline.
-        state_in = {"question": user_input, "context": []}
-        result = medical_graph.invoke(state_in)
-        st.session_state.messages.append((user_input, result["answer"]))
-        st.experimental_rerun()
+        st.info("Please upload a Medical Book PDF to begin.")
 
-# If appointment mode is active, show additional input for appointment details.
-if st.session_state.appointment_mode:
-    st.info("Appointment Booking Mode: Please enter your preferred appointment details below.")
-    appointment_details = st.text_input("Appointment Details (e.g., date, time, notes):", key="appointment_details")
-    if st.button("Confirm Appointment"):
-        result = appointment_booking_flow(st.session_state.user_question, appointment_details)
-        st.session_state.messages.append((st.session_state.user_question, result["answer"]))
-        st.session_state.appointment_mode = False  # Reset mode after booking
-        st.experimental_rerun()
+# --- Appointment Booking Tab ---
+with tabs[1]:
+    st.header("Book an Appointment")
+    with st.form("appointment_form"):
+        name = st.text_input("Name")
+        email = st.text_input("Email")
+        phone = st.text_input("Phone")
+        appointment_datetime = st.text_input("Preferred Appointment Date & Time (YYYY-MM-DD HH:MM)")
+        symptoms = st.text_area("Describe your symptoms")
+        submitted = st.form_submit_button("Book Appointment")
+    
+    if submitted:
+        if not (name and email and phone and appointment_datetime and symptoms):
+            st.warning("Please fill out all fields.")
+        else:
+            success, result = book_appointment(name, email, phone, appointment_datetime, symptoms)
+            if success:
+                st.success(result)
+            else:
+                st.error(f"Failed to book appointment: {result}")
 
-# A button to clear the conversation.
-if st.button("Clear Conversation"):
-    st.session_state.messages = []
-    st.session_state.appointment_mode = False
-    st.experimental_rerun()
+with tabs[2]:
+    st.header("View Appointments")
+    df = get_appointments()
+    if df is not None and not df.empty:
+        st.dataframe(df)
+    else:
+        st.info("No appointments found.")
