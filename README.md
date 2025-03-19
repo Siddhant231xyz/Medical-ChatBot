@@ -40,7 +40,8 @@ medical-chatbot/
 ├── requirements.txt       # Project dependencies
 ├── Dockerfile             # Containerization instructions
 ├── .dockerignore          # Files to ignore when building the Docker image
-├── secrets.toml           # Secrets file (contains DATABASE_URL, etc.)
+├── .streamlit/secrets.toml           # Secrets file (contains DATABASE_URL, etc.)
+├── app_local.py           # Streamlit app for localhost
 ```
 
 ### How It Works
