@@ -12,6 +12,9 @@ The Medical Chatbot is a Streamlit-powered virtual medical assistant that combin
 
 ![Medical Chatbot Demo](assets/demo.gif)
 
+![image](https://github.com/user-attachments/assets/9f8fc745-d236-49ab-b4a0-f3c3f31423af)
+
+
 ## Features ✨
 
 - 🤖 **Intelligent Medical Q&A**
