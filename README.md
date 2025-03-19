@@ -47,6 +47,9 @@ medical-chatbot/
 ├── app_local.py           # Streamlit app for localhost
 ```
 
+![image](https://github.com/user-attachments/assets/3af537b9-7ef1-4ca5-be46-a5867f4d5592)
+
+
 ### How It Works
 
 1. **Document Processing**
