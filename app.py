@@ -26,9 +26,24 @@ def load_and_process_pdf(file_path):
     return splits
 
 def query_medical_book(question: str, docs):
-    """Combine the content from docs and query the LLM with friendly, supportive instructions."""
-    # Combine excerpts from the medical book.
-    context = "\n\n".join(doc.page_content for doc in docs)
+    """Combine the content from the most relevant docs and query the LLM with friendly, supportive instructions."""
+    # Compute the query embedding.
+    query_embedding = st.session_state.embeddings.embed_query(question)
+    
+    # For each document chunk, compute its embedding and similarity to the query.
+    doc_similarities = []
+    for doc in docs:
+        doc_embedding = st.session_state.embeddings.embed_query(doc.page_content)
+        sim = cosine_similarity(query_embedding, doc_embedding)
+        doc_similarities.append((doc, sim))
+    
+    # Sort the documents by similarity score (descending order).
+    doc_similarities.sort(key=lambda x: x[1], reverse=True)
+    # Select the top 3 most relevant chunks.
+    top_docs = [doc for doc, sim in doc_similarities[:3]]
+    
+    # Combine excerpts from the selected document chunks.
+    context = "\n\n".join(doc.page_content for doc in top_docs)
     
     # System instructions for the LLM:
     system_instructions = (
@@ -53,7 +68,6 @@ def query_medical_book(question: str, docs):
 
 def book_appointment(name, email, phone, appointment_datetime, symptoms):
     """Insert appointment details directly into the AWS RDS database using SQLAlchemy."""
-    # Retrieve the RDS connection string from Streamlit secrets (set DATABASE_URL in your secrets file).
     DATABASE_URL = st.secrets["DATABASE_URL"]
     engine = create_engine(DATABASE_URL)
     try:
@@ -82,7 +96,6 @@ def get_appointments():
             query = text("SELECT id, name, email, phone, appointment_datetime, symptoms, created_at FROM appointments ORDER BY created_at DESC")
             result = conn.execute(query)
             appointments = result.fetchall()
-        # Convert result to a pandas DataFrame for easier display.
         df = pd.DataFrame(appointments, columns=["ID", "Name", "Email", "Phone", "Appointment DateTime", "Symptoms", "Created At"])
         return df
     except Exception as e:
@@ -154,6 +167,7 @@ with tabs[1]:
             else:
                 st.error(f"Failed to book appointment: {result}")
 
+# --- View Appointments Tab ---
 with tabs[2]:
     st.header("View Appointments")
     df = get_appointments()
