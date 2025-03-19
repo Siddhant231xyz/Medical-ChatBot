@@ -133,6 +133,7 @@ This application is containerized using Docker. Follow these steps:
 
     ENV PYTHONDONTWRITEBYTECODE=1
     ENV PYTHONUNBUFFERED=1
+    ENV OPENAI_API_KEY="<api_key>"
 
     WORKDIR /app
 
